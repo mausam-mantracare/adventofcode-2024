@@ -9,7 +9,7 @@ function getNextDirection(current) {
         case "left":
             return "up";
         default:
-            return null;
+            return "up";
     }
 }
 
@@ -31,43 +31,26 @@ function getNextPosition(map, direction, row, col, obstacle) {
 
     if (map[nextRow][nextCol] === obstacle) {
         direction = getNextDirection(direction);
+        return getNextPosition(map, direction, row, col, obstacle);
     }
 
     return {
         nextDirection: direction,
-        nextPosition: [row + directionSteps[direction][0], col + directionSteps[direction][1]]
+        nextPosition: [nextRow, nextCol]
     };
 }
 
-
-function runMap(map, row, col, startDirection, obstacle) {
+function getValidPosition(map, initialPos, startDirection, obstacle) {
+    const visitedPosition = new Set();
     let i = row, j = col;
     let direction = startDirection;
-    let cnt = 0;
 
-    while (i != -1 && j != -1) {
+    while (i >= 0 && j >= 0) {
         const nextPoint = getNextPosition(map, direction, i, j, obstacle);
-        if (nextPoint.nextPosition[0] === -1) break;
-
-        // print(nextPoint, cnt);
-
         direction = nextPoint.nextDirection;
         [i, j] = nextPoint.nextPosition;
 
-        if (map[i] && map[i][j] !== obstacle) {
-            map[i][j] = "X"; 
-        }
-
-        cnt++;
+        if (i >= 0 && j >= 0) visitedPosition.add(nextPoint.nextPosition.toString())
     }
-    return cnt;
-}
-
-function getStartRow(map) {
-    const startPos = map.flat().indexOf("^");
-    if (startPos === -1) return [-1, -1];
-
-    const row = Math.floor(startPos / map[0].length);
-    const col = map[row].indexOf("^");
-    return [row, col];
+    return visitedPosition;
 }

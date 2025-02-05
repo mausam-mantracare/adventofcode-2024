@@ -1,3 +1,7 @@
+import { readFileSync } from "fs";
+import { print } from "../utils/index.js";
+const data = readFileSync(process.argv[2], "utf-8");
+
 function getNextDirection(current) {
     switch (current) {
         case "up":
@@ -71,3 +75,11 @@ function getStartRow(map) {
     const col = map[row].indexOf("^");
     return [row, col];
 }
+
+const obstacle = "#";
+const map = data.trim().split("\n").map(path => path.split(""));
+
+const [startRow, startCol] = getStartRow(map);
+const startDirection = "up";
+const finalMap = runMap(map, startRow, startCol, startDirection, obstacle);
+console.log(finalMap);
