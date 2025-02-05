@@ -16,22 +16,32 @@
             gap: 2px;
         }
 
-        .cell {
+        .cell, .x-axis, .y-axis {
             width: 30px;
             height: 30px;
+            font-size: 18px;
+
             display: flex;
             justify-content: center;
-            align-items: center;
-            font-size: 18px;
+            
+        }
+
+        .cell{
             font-weight: bold;
             border: 1px solid #ccc;
+            align-items: center;
+        }
+        .x-axis, .y-axis{
+            color: gray;
+            font-size: 16px;
+            align-items: end;
         }
 
         .obstacle {
             color: red;
         }
-        .visited{
-            background: yellow;
+        .cell.visited{
+            background: yellow !important;
         }
 
         .guard {
@@ -43,6 +53,19 @@
             font-weight: medium;
             transition: transform 200ms ease;
         }
+        .cell.up{
+            rotate: 0deg;
+        }
+        .cell.right{
+            rotate: 90deg;
+        }
+        .cell.down{
+            rotate: 180deg;
+        }
+
+        .cell.left{
+            rotate: -90deg;
+        }
 
     </style>
     <div style="display: flex; flex-direction: column; gap: 0.25rem; width: fit-content; margin: 0 auto;">
@@ -52,8 +75,9 @@
         <button onclick="simulate()">Simulate</button>
         </div>
     </div>
-    <main style="width: fit-content; margin: 1rem auto;">
-        <div style="display: flex; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; visibility: hidden;" id="mapInfo">
+    
+    <main style="display: flex; gap: 1rem; width: fit-content; margin: 1rem auto;">
+        <div style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; align-items: center; margin-bottom: 0.5rem; visibility: hidden;" id="mapInfo">
             <div>
                 Guard Pos: <span id="guard-pos"></span>
             </div>
@@ -64,6 +88,7 @@
     
         <div id="app"></div>
     </main>
+    
     <script src="index.js"></script>
     
     <script>
@@ -84,6 +109,9 @@
         const pathCount = document.getElementById("path-count")
   
         function drawMap() {
+            cellElements = []
+            pathCount.textContent = 0;
+
             const currentInput = textarea.value.trim();
             console.log(currentInput)
             if (!currentInput) {
@@ -94,26 +122,48 @@
             map = currentInput.split("\n").map(path => path.split(""));
             const numOfCols = map[0].length;
 
-            cellElements = []
-
             app.innerHTML = "";
-            app.style.setProperty("--numOfCols", numOfCols);
+            app.style.setProperty("--numOfCols", numOfCols+1);
+
+            Array.from({length: map[0].length}).map((p, index) => {
+                const xAxis = document.createElement("div")
+                xAxis.classList.add("x-axis")
+                xAxis.textContent = index
+                app.appendChild(xAxis)
+            })
 
             map.forEach((row, rowIndex) => {
-                row.forEach((cell, colIndex) => {
+               
+                    const yAxis = document.createElement("div");
+                    yAxis.classList.add("y-axis")
+                    if(rowIndex == 0) yAxis.textContent = ""
+                    else yAxis.textContent = rowIndex - 1
+                    app.appendChild(yAxis)
+  
+
+                row.forEach((cell, colIndex) => {                    
                     const cellElement = document.createElement("div");
+                    // const cellContent = document.createElement("span")
                     cellElement.classList.add("cell");
                     if (cell === obstacle)
                         cellElement.classList.add("obstacle");
                     if (cell == guard)
-                        cellElement.classList.add("guard")
+                        cellElement.classList.add("guard", "up")
                     cellElement.textContent = cell;
 
+                    // cellElement.appendChild(cellContent)
+                    
                     cellElements.push({ element: cellElement, row: rowIndex, col: colIndex });
-
+                
                     app.appendChild(cellElement);
                 });
             });
+
+            const yAxis = document.createElement("div");
+            yAxis.classList.add("y-axis")
+            yAxis.textContent = map.length - 1
+            app.appendChild(yAxis)
+
             guardPos = getStartRow(map);
             guardPosition.textContent = guardPos
 
@@ -125,41 +175,62 @@
             
             let i = guardPos[0], j = guardPos[1];
             let direction = "up";
-            let cnt = 0;
+            let cnt = 1;
             
             const interval = setInterval(() =>{
                 if(i === -1 || j === -1 ){
                     clearInterval(interval)
                     return;
                 }
+                const currentCell = cellElements.find(cell => cell.row == i && cell.col == j);
+
                 pathCount.textContent = cnt;
+
                 if(map[i][j] && map[i][j] != obstacle){
                     map[i][j] = visited;
-                    updateCell(i, j, visited)
+                    updateCell(currentCell, visited)
                 }
 
                 const nextPoint = getNextPosition(map, direction, i, j, obstacle);
                 direction = nextPoint.nextDirection;
                 [i, j] = nextPoint.nextPosition;
 
+                const nextCell = cellElements.find(cell => cell.row == i && cell.col == j);
+
                 if (i !== -1 && j !== -1 && map[i][j] !== obstacle) {
                     map[i][j] = guard;
-                    guardPosition.textContent = [i, j] 
-                    updateCell(i, j, guard);
+                    if(nextCell.element.textContent != visited){
+                        cnt++;
+                    }else{
+                        nextCell.element.classList.add("visited")
+                    }
+                    guardPosition.textContent = [i, j]
+                    updateCell(nextCell, guard, direction);
                 }
+                // cnt++;
+                // if(nextCell.element.textContent == path){
+                //     cnt++;
+                // }
+
                 
-                cnt++;
-                
-            }, 5e2)
+            }, 2e2)
         }
 
-        function updateCell(row, col, content){
-            const cellData = cellElements.find(cell => cell.row == row && cell.col ==col)
+        function updateCell(currentCell, content, direction=null){
+            // console.log(direction)
+            // const cellData = cellElements.find(cell => cell.row == row && cell.col ==col)
 
-            if(cellData){
-                cellData.element.textContent = content;
+            if(currentCell){
+                currentCell.element.textContent = content;
                 if (content === guard) {
-                    cellData.element.classList.add("guard")
+                    currentCell.element.classList.add("guard")
+                    if (direction) {
+                        currentCell.element.classList.remove("up", "left", "right", "down")
+                        currentCell.element.classList.add(direction)
+                    }
+                }
+                if(content == visited){
+                    currentCell.element.classList.remove("up", "left", "right", "down") 
                 }
             }
         }
