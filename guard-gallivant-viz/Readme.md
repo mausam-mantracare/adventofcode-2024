@@ -1,1 +1,1 @@
-![screenshot](guard-gallivant_part1.png)
+![screenshot](./guard-gallivant_part1.png)
