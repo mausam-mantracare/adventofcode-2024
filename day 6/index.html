@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Access-Control-Allow-Origin" content="*" />
+    <title>Visualize | Day 6</title>
+</head>
+
+<body>
+    <style>
+        #app {
+            display: grid;
+            grid-template-columns: repeat(var(--numOfCols), 30px);
+            gap: 2px;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            border: 1px solid #ccc;
+        }
+
+        .obstacle {
+            color: red;
+        }
+        .visited{
+            background: yellow;
+        }
+
+        .guard {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: green;
+            background: rgba(0, 150, 0, 0.5);
+            font-weight: medium;
+            transition: transform 200ms ease;
+        }
+
+    </style>
+    <div style="display: flex; flex-direction: column; gap: 0.25rem; width: fit-content; margin: 0 auto;">
+        <textarea style="text-align: center; border: 1px solid rgba(128, 128, 128, 0.5); outline: none; border-radius: 0.5rem; padding: 0.25rem 0.5rem; overflow: hidden;" rows="10" id="input"></textarea>
+        <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+            <button onclick="drawMap()">Draw Map</button>
+        <button onclick="simulate()">Simulate</button>
+        </div>
+    </div>
+    <main style="width: fit-content; margin: 1rem auto;">
+        <div style="display: flex; gap: 1rem; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; visibility: hidden;" id="mapInfo">
+            <div>
+                Guard Pos: <span id="guard-pos"></span>
+            </div>
+            <div>
+                Path Count: <span id="path-count">0</span>
+            </div>
+        </div>
+    
+        <div id="app"></div>
+    </main>
+    <script src="index.js"></script>
+    
+    <script>
+
+        const path = ".";
+        const guard = "^";
+        const obstacle = "#";
+        const visited = "X";
+
+        let map = null;
+        let guardPos = null
+        let cellElements = null;
+
+        const app = document.getElementById("app");
+        const mapInfo = document.getElementById("mapInfo");
+        const textarea = document.getElementById("input")
+        const guardPosition = document.getElementById("guard-pos")
+        const pathCount = document.getElementById("path-count")
+  
+        function drawMap() {
+            const currentInput = textarea.value.trim();
+            console.log(currentInput)
+            if (!currentInput) {
+                alert("Input is required")
+                return;
+            };
+
+            map = currentInput.split("\n").map(path => path.split(""));
+            const numOfCols = map[0].length;
+
+            cellElements = []
+
+            app.innerHTML = "";
+            app.style.setProperty("--numOfCols", numOfCols);
+
+            map.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const cellElement = document.createElement("div");
+                    cellElement.classList.add("cell");
+                    if (cell === obstacle)
+                        cellElement.classList.add("obstacle");
+                    if (cell == guard)
+                        cellElement.classList.add("guard")
+                    cellElement.textContent = cell;
+
+                    cellElements.push({ element: cellElement, row: rowIndex, col: colIndex });
+
+                    app.appendChild(cellElement);
+                });
+            });
+            guardPos = getStartRow(map);
+            guardPosition.textContent = guardPos
+
+            mapInfo.style.visibility = "visible";
+        }
+
+        function simulate(){
+            if(!map) return;
+            
+            let i = guardPos[0], j = guardPos[1];
+            let direction = "up";
+            let cnt = 0;
+            
+            const interval = setInterval(() =>{
+                if(i === -1 || j === -1 ){
+                    clearInterval(interval)
+                    return;
+                }
+                pathCount.textContent = cnt;
+                if(map[i][j] && map[i][j] != obstacle){
+                    map[i][j] = visited;
+                    updateCell(i, j, visited)
+                }
+
+                const nextPoint = getNextPosition(map, direction, i, j, obstacle);
+                direction = nextPoint.nextDirection;
+                [i, j] = nextPoint.nextPosition;
+
+                if (i !== -1 && j !== -1 && map[i][j] !== obstacle) {
+                    map[i][j] = guard;
+                    guardPosition.textContent = [i, j] 
+                    updateCell(i, j, guard);
+                }
+                
+                cnt++;
+                
+            }, 5e2)
+        }
+
+        function updateCell(row, col, content){
+            const cellData = cellElements.find(cell => cell.row == row && cell.col ==col)
+
+            if(cellData){
+                cellData.element.textContent = content;
+                if (content === guard) {
+                    cellData.element.classList.add("guard")
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>
