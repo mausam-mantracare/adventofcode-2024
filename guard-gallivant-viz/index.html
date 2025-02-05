@@ -14,6 +14,7 @@
             display: grid;
             grid-template-columns: repeat(var(--numOfCols), 30px);
             gap: 2px;
+            transition: all 500ms ease;
         }
 
         .cell, .x-axis, .y-axis {
@@ -67,27 +68,35 @@
             rotate: -90deg;
         }
 
+    
     </style>
-    <div style="display: flex; flex-direction: column; gap: 0.25rem; width: fit-content; margin: 0 auto;">
-        <textarea style="text-align: center; border: 1px solid rgba(128, 128, 128, 0.5); outline: none; border-radius: 0.5rem; padding: 0.25rem 0.5rem; overflow: hidden;" rows="10" id="input"></textarea>
-        <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
-            <button onclick="drawMap()">Draw Map</button>
-        <button onclick="simulate()">Simulate</button>
+
+    <header>
+        <h2 style="text-align: center;">Guard Gallivant Visualization</h2>
+    </header>
+
+    <div style="display: flex; justify-content: center; gap: 1.5rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.25rem; width: fit-content; padding-top: 30px;">
+            <textarea style="text-align: center; border: 1px solid rgba(128, 128, 128, 0.5); outline: none; border-radius: 0.5rem; padding: 0.25rem 0.5rem; overflow: hidden;" rows="10" id="input"></textarea>
+            <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+                <button onclick="drawMap()">Draw Map</button>
+            <button onclick="simulate()">Simulate</button>
+            </div>
         </div>
+        
+        <main style="display: flex; flex-direction: column-reverse; gap: 1rem; width: fit-content; ">
+            <div style="display: none; gap: 1rem; justify-content: center; align-items: center; margin-bottom: 0.5rem;" id="mapInfo">
+                <div>
+                    Guard Pos: <span id="guard-pos"></span>
+                </div>
+                <div>
+                    Path Count: <span id="path-count">0</span>
+                </div>
+            </div>
+        
+            <div id="app"></div>
+        </main>
     </div>
-    
-    <main style="display: flex; gap: 1rem; width: fit-content; margin: 1rem auto;">
-        <div style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; align-items: center; margin-bottom: 0.5rem; visibility: hidden;" id="mapInfo">
-            <div>
-                Guard Pos: <span id="guard-pos"></span>
-            </div>
-            <div>
-                Path Count: <span id="path-count">0</span>
-            </div>
-        </div>
-    
-        <div id="app"></div>
-    </main>
     
     <script src="index.js"></script>
     
@@ -167,7 +176,7 @@
             guardPos = getStartRow(map);
             guardPosition.textContent = guardPos
 
-            mapInfo.style.visibility = "visible";
+            mapInfo.style.display = "flex";
         }
 
         function simulate(){
