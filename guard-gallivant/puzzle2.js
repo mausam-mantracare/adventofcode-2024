@@ -69,7 +69,7 @@ function runMap(map, row, col, startDirection, obstacle, visitedPosition) {
         direction = nextPoint.nextDirection;
         [i, j] = nextPoint.nextPosition;
 
-        if (i >= 0 && j >= 0) visitedPosition.add(`[${i},${j}]`)
+        if (i >= 0 && j >= 0) visitedPosition.add(nextPoint.nextPosition.toString())
     }
     return cnt;
 }
@@ -101,30 +101,30 @@ function foundLoop(map, direction, initialPos, obstacle){
     
     while(i >=0 && j>=0){
 
-        if(currentLoop.has([i, j]) && (direction == currentLoop.get([i,j])))
-            return true;
         
         const nextPoint = getNextPosition(map, direction, i, j, obstacle);
         direction = nextPoint.nextDirection;
-        const nextPosition = nextPoint.nextPosition;
-        [i, j] = nextPosition;
-
-        console.log(nextPosition)
-
-        if (i >= 0 && j >= 0) currentLoop.set(nextPosition, direction)
+        [i, j] = nextPoint.nextPosition;
+        
+        if(currentLoop.has([i, j].toString()) && (direction == currentLoop.get([i,j].toString())))
+            return true;
+        
+        if (i >= 0 && j >= 0) currentLoop.set([i, j].toString(), direction)
     }
+
     return false;
 }
 
 function getGuardLoops(map, visitedPosition, initialPos, direction, obstacle){
     let count = 0;
 
-    for(const val of visitedPosition){
+    for(const pos of visitedPosition){
     
-        const [tRow, tCol] = JSON.parse(val);
+        const [tRow, tCol] = pos.split(",");
         map[tRow][tCol] = "#"
-
+        // console.log("new obstacle pos: ", [tRow, tCol])
         if(foundLoop(map, direction, initialPos, obstacle)){
+            // console.log("Found --")
             count++
         }
 
