@@ -40,9 +40,18 @@ function getNextPosition(map, direction, row, col, obstacle) {
     };
 }
 
+function getStartRow(map) {
+    const startPos = map.flat().indexOf("^");
+    if (startPos === -1) return [-1, -1];
+
+    const row = Math.floor(startPos / map[0].length);
+    const col = map[row].indexOf("^");
+    return [row, col];
+}
+
 function getValidPosition(map, initialPos, startDirection, obstacle) {
     const visitedPosition = new Set();
-    let i = row, j = col;
+    let i = initialPos.row, j = initialPos.col;
     let direction = startDirection;
 
     while (i >= 0 && j >= 0) {
@@ -54,3 +63,51 @@ function getValidPosition(map, initialPos, startDirection, obstacle) {
     }
     return visitedPosition;
 }
+
+
+// function foundLoop(map, startDirection, initialPos, obstacle){
+//     let currentLoop = new Map();
+//     let i = initialPos.row, j = initialPos.col;
+//     let direction = startDirection;
+
+//     while(i >=0 && j>=0){
+
+        
+//         const nextPoint = getNextPosition(map, direction, i, j, obstacle);
+//         direction = nextPoint.nextDirection;
+//         [i, j] = nextPoint.nextPosition;
+        
+//         if(currentLoop.has([i, j].toString()) && (direction == currentLoop.get([i,j].toString())))
+//             return true;
+        
+//         if (i >= 0 && j >= 0) currentLoop.set([i, j].toString(), direction)
+//     }
+
+//     return false;
+// }
+
+function getGuardLoops(map, visitedPosition, initialPos, direction, obstacle){
+    let count = 0;
+
+    for(const pos of visitedPosition){
+    
+        const [tRow, tCol] = pos.split(",");
+        map[tRow][tCol] = "#"
+        // console.log("new obstacle pos: ", [tRow, tCol])
+        if(foundLoop(map, direction, initialPos, obstacle)){
+            // console.log("Found --")
+            count++
+        }
+
+        map[tRow][tCol] = "."
+        
+    }
+
+    return count;
+}
+
+// const initialPos = {
+//     row: startRow,
+//     col: startCol
+// }
+// const result2 = getGuardLoops(map, visitedPosition, initialPos, startDirection, obstacle)

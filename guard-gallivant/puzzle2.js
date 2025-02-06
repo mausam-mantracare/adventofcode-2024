@@ -1,11 +1,4 @@
 
-// Record starting position
-// Store all possible navigation point of guard
-// Iterate through each point and place the obstacle
-// - It visit same point again ??
-// - Exits from the map ??
-
-
 import { readFileSync } from "fs";
 const data = readFileSync(process.argv[2], "utf-8");
 

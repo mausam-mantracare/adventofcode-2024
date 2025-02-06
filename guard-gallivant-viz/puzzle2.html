@@ -1,11 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Visualization | Day 6 Part 2</title>
+    <!-- <script src="https://unpkg.com/@tailwindcss/browser@4"></script> -->
 </head>
+
 <body>
-    <div id="app"></div>
+    <style>
+        #app {
+            display: grid;
+            grid-template-columns: repeat(var(--numOfCols), 30px);
+            gap: 2px;
+            transition: all 500ms ease;
+        }
+
+        .cell,
+        .x-axis,
+        .y-axis {
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+
+            display: flex;
+            justify-content: center;
+
+        }
+
+        .cell {
+            font-weight: bold;
+            border: 1px solid #ccc;
+            align-items: center;
+        }
+
+        .x-axis,
+        .y-axis {
+            color: gray;
+            font-size: 16px;
+            align-items: end;
+        }
+
+        .obstacle {
+            color: red;
+        }
+
+        .new-obstacle {
+            color: yellow;
+        }
+
+        .cell.visited {
+            background: yellow !important;
+        }
+
+        .guard {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: green;
+            background: rgba(0, 150, 0, 0.5);
+            font-weight: medium;
+            transition: transform 200ms ease;
+        }
+
+        .cell.up {
+            rotate: 0deg;
+        }
+
+        .cell.right {
+            rotate: 90deg;
+        }
+
+        .cell.down {
+            rotate: 180deg;
+        }
+
+        .cell.left {
+            rotate: -90deg;
+        }
+    </style>
+
+    <div>
+        <textarea rows="10" id="input-area"></textarea>
+        <div>
+            <button onclick="drawMap()">Draw Map</button>
+            <button onclick="simulate()">Simulate</button>
+        </div>
+    </div>
+    <main>
+        <div id="map-info" style="display: flex; gap: 8px;">
+            <div>
+                <p>Loop Count:<span id="loop-count">0</span></p>
+                <p>Guard Pos:<span id="guard-pos">0</span></p>
+            </div>
+            <div>
+                <p>Guard Valid Positions: <span id="guard-valid-pos"></span></p>
+                <p>Blocking Pos: <span id="block-pos"></span></p>
+            </div>
+            <div id="pos-logger">
+
+            </div>
+        </div>
+        <div id="app"></div>
+
+        <div>
+            <p>Resultant Loop Maps</p>
+            <div id="result-map" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            </div>
+        </div>
+    </main>
+
+    <script src="puzzle2.js"></script>
+
+    <script>
+
+        const app = document.getElementById("app");
+        const textarea = document.getElementById("input-area")
+        const mapInfo = document.getElementById("map-info");
+        const guardPosition = document.getElementById("guard-pos")
+        const loopCount = document.getElementById("loop-count")
+        const guardValidPos = document.getElementById("guard-valid-pos")
+        const guardBlockPos = document.getElementById("block-pos")
+
+        const posLogger = document.getElementById("pos-logger")
+
+        const resultMap = document.getElementById("result-map")
+
+        const obstacle = "#"
+        const newObstacle = "O"
+        const guard = "^"
+        const path = "."
+
+        let map = null;
+        let guardPos = null
+        let cellElements = null;
+        let validGuardPosition = null;
+
+        function drawMap() {
+            cellElements = []
+
+            const currentInput = textarea.value.trim();
+            console.log(currentInput)
+            if (!currentInput) {
+                alert("Input is required")
+                return;
+            };
+
+            map = currentInput.split("\n").map(path => path.split(""));
+            const numOfCols = map[0].length;
+
+            app.innerHTML = "";
+            app.style.setProperty("--numOfCols", numOfCols + 1);
+
+            Array.from({ length: map[0].length }).map((p, index) => {
+                const xAxis = document.createElement("div")
+                xAxis.classList.add("x-axis")
+                xAxis.textContent = index
+                app.appendChild(xAxis)
+            })
+
+            map.forEach((row, rowIndex) => {
+
+                const yAxis = document.createElement("div");
+                yAxis.classList.add("y-axis")
+                if (rowIndex == 0) yAxis.textContent = ""
+                else yAxis.textContent = rowIndex - 1
+                app.appendChild(yAxis)
+
+
+                row.forEach((cell, colIndex) => {
+                    const cellElement = document.createElement("div");
+                    // const cellContent = document.createElement("span")
+                    cellElement.classList.add("cell");
+                    if (cell === obstacle)
+                        cellElement.classList.add("obstacle");
+                    if (cell == guard)
+                        cellElement.classList.add("guard", "up")
+                    cellElement.textContent = cell;
+
+                    // cellElement.appendChild(cellContent)
+
+                    cellElements.push({ element: cellElement, row: rowIndex, col: colIndex });
+
+                    app.appendChild(cellElement);
+                });
+            });
+
+            const yAxis = document.createElement("div");
+            yAxis.classList.add("y-axis")
+            yAxis.textContent = map.length - 1
+            app.appendChild(yAxis)
+
+            guardPos = getStartRow(map);
+            guardPosition.textContent = guardPos
+        }
+
+
+        function foundLoop(map, startDirection, initialPos, obstacle) {
+            let currentLoop = new Map();
+            let i = initialPos.row, j = initialPos.col;
+            let direction = startDirection;
+
+            while (i >= 0 && j >= 0) {
+                const currentCell = cellElements.find(cell => cell.row == i && cell.col == j);
+                let visited = "";
+
+                if (map[i][j] != obstacle) {
+
+                    switch (direction) {
+                        case "up":
+                        case "down":
+                            visited = "|"
+                            break;
+                        case "left":
+                        case "right":
+                            visited = "-"
+                            break;
+                    }
+                    if (["|", "-"].includes(map[i][j])) visited = "+";
+
+                    updateCell(currentCell, visited)
+                }
+
+                const nextPoint = getNextPosition(map, direction, i, j, obstacle);
+                direction = nextPoint.nextDirection;
+                [i, j] = nextPoint.nextPosition;
+
+                const nextCell = cellElements.find(cell => cell.row == i && cell.col == j);
+
+                if (i !== -1 && j !== -1 && map[i][j] !== obstacle) {
+                    map[i][j] = guard;
+                    guardPosition.textContent = [i, j]
+                    updateCell(nextCell, guard, direction);
+                }
+
+                if (currentLoop.has([i, j].toString()) && (direction == currentLoop.get([i, j].toString())))
+                    return true;
+
+                if (i >= 0 && j >= 0) currentLoop.set([i, j].toString(), direction)
+            }
+
+            return false;
+        }
+
+        function simulate() {
+            if (!map) return;
+            let cnt = 0;
+
+            const direction = "up"
+            const initialPos = {
+                row: guardPos[0],
+                col: guardPos[1]
+            }
+
+            validGuardPosition = getValidPosition(map, initialPos, direction, obstacle)
+            console.log(validGuardPosition, validGuardPosition[0])
+
+            guardValidPos.innerHTML = Array.from(validGuardPosition).map(x => `[${x.toString()}]`).join(", ")
+
+            // let index = 0;
+            // let interval = setInterval(() => {
+            // if (index == validGuardPosition.length) {
+            //     clearInterval(interval)
+            //     return;
+            // }
+
+            for (const position of validGuardPosition) {
+                const [tRow, tCol] = position.split(",");
+
+                map[tRow][tCol] = obstacle;
+
+                const currentCell = cellElements.find(cell => cell.row == tRow && cell.col == tCol);
+                updateCell(currentCell, obstacle)
+
+                guardBlockPos.textContent = String([tRow, tCol])
+
+                let isLoop = false;
+
+                isLoop = foundLoop(map, direction, initialPos, obstacle)
+
+                if (isLoop) {
+                    cnt++;
+
+                    addToResultantMap(map, [tRow, tCol])
+
+                    loopCount.textContent = cnt;
+                    posLogger.innerHTML += `
+                    <span style='color: green; font-weight: medium;'>${[tRow, tCol]}Loop Found</span>
+                    `
+
+                } else {
+                    posLogger.innerHTML += `
+                    <span style='color: gray;'>${[tRow, tCol]} No Loop Found</span>
+                    `
+                }
+                drawMap()
+                // index++;
+            }
+
+            // }, 2e2)
+
+
+            // for(const position of validGuardPosition){
+
+            //     const [tRow, tCol] = position.split(",");
+            //     map[tRow][tCol] = "#"
+
+            //     // const mapCopy = map.map(x => x.map(y=>y));
+
+            //     const currentCell = cellElements.find(cell => cell.row == tRow && cell.col == tCol);
+
+            //     guardBlockPos.textContent = String([tRow, tCol])
+
+            //     let isLoop = false;
+
+            //     let interval = setInterval(() => {             
+            //         isLoop = foundLoop(map, direction, initialPos, obstacle)
+
+            //         checkPos.textContent = String([tRow, tCol])
+            //         posStatus.textContent = "Checking ..."
+            //         if(isLoop){
+            //             cnt++;
+
+            //             addToResultantMap(map)
+
+            //             loopCount.textContent = cnt;
+            //             posStatus.textContent = "Loop Found."
+            //         }else{
+            //             posStatus.textContent = "No Loop Found."
+            //         }
+            //         drawMap()
+
+            //         clearInterval(interval)
+            //     }, 2e2)
+
+            // }
+        }
+
+        function addToResultantMap(map, newObstacleCell) {
+            const numOfCols = map[0].length;
+
+            const foundMap = document.createElement("div")
+            foundMap.style.display = "grid";
+            foundMap.style.gridTemplateColumns = `repeat(${numOfCols + 1}, 30px)`
+
+
+            Array.from({ length: map[0].length }).map((p, index) => {
+                const xAxis = document.createElement("div")
+                xAxis.classList.add("x-axis")
+                xAxis.textContent = index
+                foundMap.appendChild(xAxis)
+            })
+
+            map.forEach((row, rowIndex) => {
+
+                const yAxis = document.createElement("div");
+                yAxis.classList.add("y-axis")
+                if (rowIndex == 0) yAxis.textContent = ""
+                else yAxis.textContent = rowIndex - 1
+                foundMap.appendChild(yAxis)
+
+
+                row.forEach((cell, colIndex) => {
+                    const cellElement = document.createElement("div");
+                    // const cellContent = document.createElement("span")
+                    cellElement.classList.add("cell");
+                    if (cell === obstacle)
+                        cellElement.classList.add("obstacle");
+                    if (cell == guard)
+                        cellElement.classList.add("guard", "up")
+                    if (rowIndex == newObstacle[0] && colIndex == newObstacleCell[1])
+                        cellElement.classList.add("new-obstacle");
+                    cellElement.textContent = cell;
+
+                    // cellElement.appendChild(cellContent)
+
+                    cellElements.push({ element: cellElement, row: rowIndex, col: colIndex });
+
+                    foundMap.appendChild(cellElement);
+                });
+            });
+
+            const yAxis = document.createElement("div");
+            yAxis.classList.add("y-axis")
+            yAxis.textContent = map.length - 1
+            foundMap.appendChild(yAxis)
+
+            resultMap.appendChild(foundMap)
+        }
+
+        function updateCell(currentCell, content, direction = null) {
+            if (currentCell) {
+                currentCell.element.textContent = content;
+                if (content === guard) {
+                    currentCell.element.classList.add("guard")
+                    if (direction) {
+                        currentCell.element.classList.remove("up", "left", "right", "down")
+                        currentCell.element.classList.add(direction)
+                    }
+                }
+                if (content == "|" || content == "-") {
+                    currentCell.element.classList.remove("up", "left", "right", "down")
+                }
+
+            }
+        }
+
+    </script>
 </body>
+
 </html>
