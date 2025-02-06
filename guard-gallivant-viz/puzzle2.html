@@ -79,6 +79,9 @@
         .cell.left {
             rotate: -90deg;
         }
+        .cell.path-follow{
+            background-color: yellow;
+        }
     </style>
 
     <div>
@@ -109,6 +112,11 @@
             <div id="result-map" style="display: flex; gap: 1rem; flex-wrap: wrap;">
             </div>
         </div>
+        <div>
+            <p>No Result Loop Maps</p>
+            <div id="no-result-map" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            </div>
+        </div>
     </main>
 
     <script src="puzzle2.js"></script>
@@ -126,6 +134,7 @@
         const posLogger = document.getElementById("pos-logger")
 
         const resultMap = document.getElementById("result-map")
+        const noResultMap = document.getElementById("no-result-map")
 
         const obstacle = "#"
         const newObstacle = "O"
@@ -206,7 +215,7 @@
                 const currentCell = cellElements.find(cell => cell.row == i && cell.col == j);
                 let visited = "";
 
-                if (map[i][j] != obstacle) {
+                if (map[i][j] != obstacle && map[i][j] != newObstacle) {
 
                     switch (direction) {
                         case "up":
@@ -218,8 +227,8 @@
                             visited = "-"
                             break;
                     }
-                    if (["|", "-"].includes(map[i][j])) visited = "+";
-
+                    if (map[i][j] == "|" || map[i][j] == "-") visited = "+";
+                    map[i][j] = visited;
                     updateCell(currentCell, visited)
                 }
 
@@ -229,7 +238,7 @@
 
                 const nextCell = cellElements.find(cell => cell.row == i && cell.col == j);
 
-                if (i !== -1 && j !== -1 && map[i][j] !== obstacle) {
+                if (i !== -1 && j !== -1 && map[i][j] !== obstacle && map[i][j] !== newObstacle) {
                     map[i][j] = guard;
                     guardPosition.textContent = [i, j]
                     updateCell(nextCell, guard, direction);
@@ -269,10 +278,10 @@
             for (const position of validGuardPosition) {
                 const [tRow, tCol] = position.split(",");
 
-                map[tRow][tCol] = obstacle;
+                map[tRow][tCol] = newObstacle;
 
                 const currentCell = cellElements.find(cell => cell.row == tRow && cell.col == tCol);
-                updateCell(currentCell, obstacle)
+                updateCell(currentCell, newObstacle)
 
                 guardBlockPos.textContent = String([tRow, tCol])
 
@@ -283,7 +292,7 @@
                 if (isLoop) {
                     cnt++;
 
-                    addToResultantMap(map, [tRow, tCol])
+                    addToResultantMap(map, [tRow, tCol], resultMap)
 
                     loopCount.textContent = cnt;
                     posLogger.innerHTML += `
@@ -291,6 +300,7 @@
                     `
 
                 } else {
+                    addToResultantMap(map, [tRow, tCol], noResultMap)
                     posLogger.innerHTML += `
                     <span style='color: gray;'>${[tRow, tCol]} No Loop Found</span>
                     `
@@ -338,7 +348,7 @@
             // }
         }
 
-        function addToResultantMap(map, newObstacleCell) {
+        function addToResultantMap(map, newObstacleCell, parent) {
             const numOfCols = map[0].length;
 
             const foundMap = document.createElement("div")
@@ -370,6 +380,8 @@
                         cellElement.classList.add("obstacle");
                     if (cell == guard)
                         cellElement.classList.add("guard", "up")
+                    if (cell == "|" || cell == "-")
+                        cellElement.classList.add("path-follow")
                     if (rowIndex == newObstacle[0] && colIndex == newObstacleCell[1])
                         cellElement.classList.add("new-obstacle");
                     cellElement.textContent = cell;
@@ -387,7 +399,7 @@
             yAxis.textContent = map.length - 1
             foundMap.appendChild(yAxis)
 
-            resultMap.appendChild(foundMap)
+            parent.appendChild(foundMap)
         }
 
         function updateCell(currentCell, content, direction = null) {

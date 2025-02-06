@@ -29,7 +29,7 @@ function getNextPosition(map, direction, row, col, obstacle) {
         return { nextDirection: direction, nextPosition: [-1, -1] };
     }
 
-    if (map[nextRow][nextCol] === obstacle) {
+    if (map[nextRow][nextCol] === obstacle || map[nextRow][nextCol] === "O") {
         direction = getNextDirection(direction);
         return getNextPosition(map, direction, row, col, obstacle);
     }
