@@ -52,11 +52,3 @@ const input = getInputString(lines);
 getAntinodes(input)
 
 console.log(antinodes, antinodes.size)
-
-// const fake = JSON.parse(JSON.stringify(lines))
-
-// antinodes.forEach(point => {
-//     fake[point[0]][point[1]] = fake[point[0]][point[1]] == "." ? "#" : fake[point[0]][point[1]];
-// })
-
-// console.log(fake.map(x => x.join("")).join("\n"))
